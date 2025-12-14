@@ -1,11 +1,11 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { Request, Response } from 'express';
 import { connectToDatabase } from './mongodb';
 import { DEFAULT_ADMIN } from '../constants';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: Request, res: Response) {
   try {
     const { db } = await connectToDatabase();
-    
+
     // Check if admin exists, if not, create it.
     const adminUser = await db.collection('users').findOne({ id: DEFAULT_ADMIN.id });
     if (!adminUser) {
