@@ -25,7 +25,23 @@ module.exports = async (req, res) => {
       const newUser = req.body;
       const result = await db.collection('users').insertOne(newUser);
       res.status(201).json(result);
+    } else if (req.method === 'PUT') {
+      const { id, ...updateData } = req.body;
+      if (!id) {
+        await client.close();
+        return res.status(400).json({ message: 'User ID is required' });
+      }
+      const result = await db.collection('users').updateOne(
+        { id: id },
+        { $set: updateData }
+      );
+      await client.close();
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.status(200).json({ message: 'User updated successfully', result });
     } else {
+      await client.close();
       res.status(405).json({ message: 'Method not allowed' });
     }
 
