@@ -21,33 +21,57 @@ module.exports = async (req, res) => {
     if (req.method === 'GET') {
       const users = await db.collection('users').find({}).project({ password: 0 }).toArray();
       res.status(200).json(users);
-    } else if (req.method === 'POST') {
-      const newUser = req.body;
-      const result = await db.collection('users').insertOne(newUser);
-      res.status(201).json(result);
-    } else if (req.method === 'PUT') {
-      const { id, ...updateData } = req.body;
-      if (!id) {
+    } else if (req.method === 'POST' || req.method === 'PUT') {
+      // Parse JSON body for POST and PUT requests
+      let body;
+      try {
+        body = JSON.parse(req.body);
+      } catch (e) {
         await client.close();
-        return res.status(400).json({ message: 'User ID is required' });
+        return res.status(400).json({ message: 'Invalid JSON in request body' });
       }
-      const result = await db.collection('users').updateOne(
-        { id: id },
-        { $set: updateData }
-      );
-      await client.close();
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ message: 'User not found' });
+
+      if (req.method === 'POST') {
+        const result = await db.collection('users').insertOne(body);
+        await client.close();
+        res.status(201).json(result);
+      } else if (req.method === 'PUT') {
+        const { id, ...updateData } = body;
+        if (!id) {
+          await client.close();
+          return res.status(400).json({ message: 'User ID is required' });
+        }
+
+        console.log('Updating user:', id, updateData);
+
+        const result = await db.collection('users').updateOne(
+          { id: id },
+          { $set: updateData }
+        );
+
+        await client.close();
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({
+          message: 'User updated successfully',
+          result: {
+            matchedCount: result.matchedCount,
+            modifiedCount: result.modifiedCount
+          }
+        });
       }
-      res.status(200).json({ message: 'User updated successfully', result });
     } else {
       await client.close();
       res.status(405).json({ message: 'Method not allowed' });
     }
-
-    await client.close();
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({
+      message: 'Internal Server Error',
+      error: error.message
+    });
   }
 };
