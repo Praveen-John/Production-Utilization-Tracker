@@ -1,25 +1,21 @@
 {
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+  "version": 2,
+  "functions": {
+    "api/*.ts": {
+      "runtime": "nodejs18.x"
     },
-    {
-      "src": "api/*.ts",
-      "use": "@vercel/node"
+    "api/*.js": {
+      "runtime": "nodejs18.x"
     }
-  ],
-  "rewrites": [
+  },
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
