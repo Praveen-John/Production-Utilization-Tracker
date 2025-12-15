@@ -22,27 +22,56 @@ module.exports = async (req, res) => {
       const users = await db.collection('users').find({}).project({ password: 0 }).toArray();
       res.status(200).json(users);
     } else if (req.method === 'POST' || req.method === 'PUT') {
-      // Parse JSON body for POST and PUT requests
+      // Log the raw body for debugging
+      console.log('Raw request body type:', typeof req.body);
+      console.log('Raw request body:', req.body);
+
+      // Parse JSON body - req.body might already be an object or a string
       let body;
-      try {
-        body = JSON.parse(req.body);
-      } catch (e) {
+      if (typeof req.body === 'object') {
+        body = req.body;
+      } else if (typeof req.body === 'string') {
+        try {
+          body = JSON.parse(req.body);
+        } catch (e) {
+          console.error('JSON parse error:', e);
+          await client.close();
+          return res.status(400).json({
+            message: 'Invalid JSON in request body',
+            body: req.body,
+            error: e.message
+          });
+        }
+      } else {
         await client.close();
-        return res.status(400).json({ message: 'Invalid JSON in request body' });
+        return res.status(400).json({
+          message: 'Invalid request body type',
+          type: typeof req.body,
+          body: req.body
+        });
       }
+
+      console.log('Parsed body:', body);
 
       if (req.method === 'POST') {
         const result = await db.collection('users').insertOne(body);
         await client.close();
         res.status(201).json(result);
       } else if (req.method === 'PUT') {
-        const { id, ...updateData } = body;
+        const id = body.id;
         if (!id) {
           await client.close();
-          return res.status(400).json({ message: 'User ID is required' });
+          return res.status(400).json({
+            message: 'User ID is required',
+            receivedBody: body
+          });
         }
 
-        console.log('Updating user:', id, updateData);
+        const updateData = { ...body };
+        delete updateData.id; // Remove id from update data
+
+        console.log('Updating user:', id);
+        console.log('Update data:', updateData);
 
         const result = await db.collection('users').updateOne(
           { id: id },
@@ -52,7 +81,11 @@ module.exports = async (req, res) => {
         await client.close();
 
         if (result.matchedCount === 0) {
-          return res.status(404).json({ message: 'User not found' });
+          return res.status(404).json({
+            message: 'User not found',
+            userId: id,
+            result: result
+          });
         }
 
         res.status(200).json({
@@ -71,7 +104,8 @@ module.exports = async (req, res) => {
     console.error('API Error:', error);
     res.status(500).json({
       message: 'Internal Server Error',
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 };
