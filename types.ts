@@ -20,7 +20,7 @@ export interface ProductionRecord {
   team: string;
   task: string;
   frequency: string;
-  totalUtilization: number; // in hours or abstract units
+  totalUtilization: number; // in minutes
   completedDate: string; // ISO date string
   count: number;
   remarks: string;

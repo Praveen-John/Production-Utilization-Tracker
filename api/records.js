@@ -38,6 +38,37 @@ module.exports = async (req, res) => {
       }
 
       res.status(201).json(insertedRecord);
+    } else if (req.method === 'PUT') {
+      // Update an existing record
+      const updatedRecord = req.body;
+
+      if (!updatedRecord.id) {
+        await client.close();
+        return res.status(400).json({
+          message: 'Record ID is required for updating',
+          receivedBody: req.body
+        });
+      }
+
+      console.log('Updating record with ID:', updatedRecord.id);
+
+      const result = await db.collection('records').updateOne(
+        { id: updatedRecord.id },
+        { $set: updatedRecord }
+      );
+
+      if (result.matchedCount === 0) {
+        await client.close();
+        return res.status(404).json({
+          message: 'Record not found for updating',
+          recordId: updatedRecord.id,
+          result: result
+        });
+      }
+
+      // Return the updated record
+      await client.close();
+      res.status(200).json(updatedRecord);
     } else if (req.method === 'DELETE') {
       const { id } = req.body;
 

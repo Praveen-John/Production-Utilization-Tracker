@@ -196,19 +196,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const element = overviewRef.current;
       const canvas = await html2canvas(element, {
         backgroundColor: '#0d1117',
-        scale: 2, 
+        scale: 2,
         useCORS: true,
       });
 
-      const imgData = canvas.toDataURL('image/png');
-      
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+
       const pdf = new jsPDF({
         orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
         unit: 'px',
-        format: [canvas.width, canvas.height] 
+        format: [canvas.width, canvas.height]
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
       pdf.save('teamops-report.pdf');
     } catch (err) {
       console.error("PDF Generation failed", err);
@@ -226,8 +226,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const saveEditRecord = () => {
     if (editingRecordId && editForm) {
       const util = Number(editForm.totalUtilization);
-      if (util <= 0 || util > 8) {
-        alert("Utilization must be greater than 0 and no more than 8");
+      if (util <= 0 || util > 480) {
+        alert("Utilization must be greater than 0 and no more than 480 minutes (8 hours)");
         return;
       }
       onUpdateRecord(editForm as ProductionRecord);

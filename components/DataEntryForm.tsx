@@ -20,24 +20,24 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
   });
 
   const [isTimeCustom, setIsTimeCustom] = useState(false);
+  const [customTaskInput, setCustomTaskInput] = useState('');
   
   // Effect to update utilization when task or count changes
   useEffect(() => {
     const selectedTaskName = formData.processName;
     const selectedTask = TASKS_WITH_TIME.find(t => t.name === selectedTaskName);
     const count = Number(formData.count) || 0;
-    
+
     if (selectedTask) {
       const taskTime = selectedTask.time;
       if (taskTime === 'runtime') {
         setIsTimeCustom(true);
-        // For runtime tasks, utilization is manually entered, so we don't multiply by count.
-        // We could either leave it as is, or reset to 0. Resetting is safer.
+        // For runtime tasks, utilization is manually entered in minutes
         setFormData(prev => ({...prev, totalUtilization: 0}));
       } else {
         setIsTimeCustom(false);
-        // The time is fixed, so we calculate it based on count.
-        const newUtilization = parseFloat((taskTime * count).toFixed(2));
+        // The time is fixed in minutes, so we calculate it based on count.
+        const newUtilization = taskTime * count;
         setFormData(prev => ({ ...prev, totalUtilization: newUtilization }));
       }
     }
@@ -46,7 +46,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation: Utilization
     const util = Number(formData.totalUtilization);
     if (util <= 0) {
@@ -54,10 +54,22 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
       return;
     }
 
-    const finalProcess = formData.processName;
-    
-    // Since we merged, we set both processName and task to the same value to maintain compatibility with charts/schema
-    const finalTask = finalProcess; 
+    const selectedProcess = formData.processName;
+
+    // Validation for "Other" task
+    if (selectedProcess === "Other" && !customTaskInput.trim()) {
+      alert("Error: Please specify the custom task name when 'Other' is selected.");
+      return;
+    }
+
+    let finalProcess = selectedProcess;
+    let finalTask = selectedProcess;
+
+    // If "Other" is selected, use the custom task input as the process/task name
+    if (selectedProcess === "Other") {
+      finalProcess = customTaskInput.trim();
+      finalTask = customTaskInput.trim();
+    }
 
     if (!finalProcess || !formData.team) {
         alert("Please fill in all required fields.");
@@ -79,14 +91,16 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
     };
 
     onAddRecord(newRecord);
-    
+
     // Reset form safely
     setFormData(prev => ({
       ...prev,
+      processName: TASKS_WITH_TIME[0].name, // Reset to first task instead of keeping "Other"
       totalUtilization: 0,
       count: 1,
       remarks: ''
     }));
+    setCustomTaskInput('');
   };
 
   const inputClass = "mt-1 block w-full rounded-lg bg-mac-bg border-mac-border text-white shadow-sm focus:border-mac-accent focus:ring-mac-accent sm:text-sm p-2.5 border placeholder-gray-500 transition-colors appearance-none";
@@ -99,7 +113,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
         New Production Entry
       </h3>
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+
         <div>
           <label className={labelClass}>Task Name</label>
           <select
@@ -110,6 +124,21 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
             {TASKS_WITH_TIME.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
           </select>
         </div>
+
+        {/* Custom Task Input - Show only when "Other" is selected */}
+        {formData.processName === "Other" && (
+          <div>
+            <label className={labelClass}>Custom Task Name *</label>
+            <input
+              type="text"
+              value={customTaskInput}
+              onChange={e => setCustomTaskInput(e.target.value)}
+              className={inputClass}
+              placeholder="Enter custom task name..."
+              required
+            />
+          </div>
+        )}
 
         <div>
           <label className={labelClass}>Team</label>
@@ -134,20 +163,20 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
         </div>
 
         <div>
-          <label className={labelClass}>Total Utilization (Decimal Hours)</label>
+          <label className={labelClass}>Total Utilization (Minutes)</label>
           <input
             type="number"
-            step="0.01"
-            min="0.01"
-            max="8"
+            step="1"
+            min="1"
+            max="480" // 8 hours = 480 minutes
             required
             readOnly={!isTimeCustom}
             value={formData.totalUtilization}
-            onChange={e => isTimeCustom && setFormData({...formData, totalUtilization: parseFloat(e.target.value)})}
+            onChange={e => isTimeCustom && setFormData({...formData, totalUtilization: parseInt(e.target.value) || 0})}
             className={`${inputClass} ${!isTimeCustom ? 'bg-mac-surface cursor-not-allowed opacity-70' : ''}`}
           />
           <p className="text-xs text-gray-500 mt-1">
-            {isTimeCustom ? 'Enter a value between 0.01 and 8.0' : 'Time is auto-calculated for this task.'}
+            {isTimeCustom ? 'Enter time in minutes (1-480 minutes)' : 'Time is auto-calculated for this task.'}
           </p>
         </div>
 

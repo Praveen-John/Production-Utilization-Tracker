@@ -204,15 +204,29 @@ function App() {
 
   const handleUpdateRecord = async (updatedRecord: ProductionRecord) => {
     try {
+      // Clean the record data before sending
+      const cleanRecord = { ...updatedRecord };
+      delete (cleanRecord as any).customTask; // Remove customTask field if present
+      delete (cleanRecord as any)._id; // Remove MongoDB _id field to prevent conflicts
+
+      console.log('Updating record:', cleanRecord);
+
       const response = await fetch('/api/records', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedRecord),
+        body: JSON.stringify(cleanRecord),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
       const returnedRecord = await response.json();
       setRecords(prev => prev.map(r => r.id === returnedRecord.id ? returnedRecord : r));
     } catch (error) {
       console.error('Failed to update record:', error);
+      alert('Failed to update record: ' + error.message);
     }
   };
 

@@ -9,10 +9,10 @@ export interface TaskDefinition {
 }
 
 /**
- * Parses a time string (e.g., "4 min / Section") into a decimal hour value.
+ * Parses a time string (e.g., "4 min / Section") into minutes.
  * Returns 'runtime' if the time is variable.
  * @param timeStr The string to parse.
- * @returns A number (decimal hours) or the string 'runtime'.
+ * @returns A number (minutes) or the string 'runtime'.
  */
 const parseTime = (timeStr: string): number | 'runtime' => {
   if (timeStr.toLowerCase().includes('based on run time')) {
@@ -21,47 +21,68 @@ const parseTime = (timeStr: string): number | 'runtime' => {
   const match = timeStr.match(/(\d+)/);
   if (match) {
     const minutes = parseInt(match[1], 10);
-    // Convert minutes to decimal hours and round to 2 decimal places
-    return Math.round((minutes / 60) * 100) / 100;
+    // Return minutes directly
+    return minutes;
   }
   return 'runtime';
 };
 
 const rawTasksFromCSV = [
-  { task: "Time Table Creation", time: "4 min / Section" },
-  { task: "Materials Required Sending", time: "5 min / Section" },
-  { task: "Live Class Scheduling", time: "3 mins/class" },
-  { task: "Live Class Schedule Checking", time: "2 mins/Class" },
-  { task: "Course Access Message", time: "4 min / Section" },
-  { task: "Absent Sheet Updation / Message Sending", time: "5 min / Section" },
-  { task: "Progression Sheet Updation / Message Sending", time: "5 min / Section" },
-  { task: "Assignment Remainder Message", time: "4 min / Section" },
-  { task: "Assessment Remainder Message", time: "5 min / Section" },
-  { task: "Frequent Absentees Call", time: "3 mins/ call" },
-  { task: "Absentees chat updation in sheet / Reply", time: "1 min / Message" },
-  { task: "Course absentees sheet Updation", time: "5 min / Section" },
-  { task: "Course absentees Call", time: "5 min / Student" },
-  { task: "Course Feedback message", time: "3 min / Class" },
-  { task: "PTM Schedule Template Making", time: "3 mins/ call" },
-  { task: "PTM Schedule Sending", time: "2 mins/Class" },
-  { task: "PTM Absent sheet updation / Message sending", time: "3 mins/class" },
-  { task: "PTM Reschedule Sheet Updation", time: "2 min / Student" },
-  { task: "PTM Reschedule Call", time: "7 min / Student" },
-  { task: "Batch Changing", time: "3 mins/ Student" },
-  { task: "Whatsapp Message Number Changing", time: "2 mins/ Student" },
-  { task: "Kit Address Sheet Updation", time: "7 Min / Section" },
-  { task: "Graduation and Event calls", time: "4 mins/ Student" },
-  { task: "Leave Holiday message", time: "30 min Overall" },
-  { task: "Hold Calls", time: "5 min / Student" },
-  { task: "Course Preparation Message From Trainer Team", time: "Based on run time" },
-  { task: "Competition Message From Trainers Team", time: "Based on run time" },
-  { task: "Trainer Follow Up Messages", time: "Based on run time" },
-  { task: "Trainer Follow Up calls", time: "Based on run time" },
-  { task: "Innovation Club Messages", time: "3 mins/class" },
-  { task: "Morning Club Inaguration Message", time: "3 mins/class" },
-  { task: "Payment Follow Sheet - Sales Team", time: "7 min / Section" },
-  { task: "Discontinue Process From Sales Team", time: "2 Min / Student" },
-  { task: "Other", time: "Based on run time" },
+  { task: "Live Class Scheduling", time: "1" },
+  { task: "Live Class Schedule Checking", time: "2" },
+  { task: "Attendance Updation", time: "2" },
+  { task: "Absent Sheet Updation / Message Sending", time: "3" },
+  { task: "Assignment Remainder Message", time: "4" },
+  { task: "Assessment Remainder Message", time: "5" },
+  { task: "Frequent Absentees call", time: "3" },
+  { task: "Kit Address Updation", time: "2" },
+  { task: "Follow-up Calls", time: "3" },
+  { task: "Support Queries", time: "runtime" },
+  { task: "Trainers Queries", time: "runtime" },
+  { task: "Absentees chat updation in sheet / Reply", time: "1" },
+  { task: "Normal Chat Reply ( Gallabox )", time: "1" },
+  { task: "Kit Address Verification ( 1 on 1 ) / Message", time: "2" },
+  { task: "Kit Address Verification ( 1 on 1 ) / call", time: "3" },
+  { task: "Progression Sheet Updation / Message Sending", time: "3" },
+  { task: "Overall Sheet Updation", time: "1" },
+  { task: "Time Table Creation", time: "4" },
+  { task: "Materials Required Sending", time: "5" },
+  { task: "Course Access Message", time: "4" },
+  { task: "Course absentees sheet Updation", time: "5" },
+  { task: "Course absentees Call", time: "5" },
+  { task: "Course Feedback message", time: "3" },
+  { task: "Course Document messsage", time: "3" },
+  { task: "PTM Schedule Template Making", time: "3" },
+  { task: "PTM Schedule Sending", time: "2" },
+  { task: "PTM Absent sheet updation / Message sending", time: "3" },
+  { task: "PTM Reschedule Sheet Updation", time: "2" },
+  { task: "PTM Reschedule Call", time: "7" },
+  { task: "Hold Calls", time: "5" },
+  { task: "Morning Club Inaguration Message", time: "3" },
+  { task: "Payment Follow Sheet - Sales Team", time: "7" },
+  { task: "Batch Changing", time: "3" },
+  { task: "Whatsapp Message Number Changing", time: "2" },
+  { task: "Kit Address Sheet Updation", time: "runtime" },
+  { task: "Graduation and Event calls", time: "4" },
+  { task: "Leave Holiday message", time: "30" },
+  { task: "Course Preparation Message From Trainer Team", time: "runtime" },
+  { task: "Competition Message From Trainers Team", time: "runtime" },
+  { task: "Trainer Follow Up Messages", time: "runtime" },
+  { task: "Trainer Follow Up calls", time: "runtime" },
+  { task: "Innovation Club Messages", time: "3" },
+  { task: "Discontinue Process From Sales Team", time: "2" },
+  { task: "Scheduling Class in Edmingle", time: "2" },
+  { task: "Live Class Scheduling ( Gallabox )", time: "1" },
+  { task: "PMC 1 on 1 Call Scheduling", time: "5" },
+  { task: "Absentees Call", time: "3" },
+  { task: "Whastapp Chat Reply", time: "2" },
+  { task: "Customer Assistance", time: "5" },
+  { task: "Onboarding Call / Payment Verification", time: "10" },
+  { task: "Chitti Account Creation / Adding in Dashboard / Sending Login Credentials", time: "5" },
+  { task: "Whatsapp Class Remainder", time: "2" },
+  { task: "Certificate Address collection", time: "2" },
+  { task: "Queries from Sales", time: "runtime" },
+  { task: "Other", time: "runtime" },
 ];
 
 export const TASKS_WITH_TIME: TaskDefinition[] = [
@@ -79,7 +100,8 @@ const rawTeams = [
   "Pick My Career Onboarding",
   "Pick My Career Operations",
   "Chitti Future School Onboarding",
-  "Chitti Future School Operations"
+  "Chitti Future School Operations",
+  "CA 360 Academy Operations"
 ];
 
 const rawFrequency = [
