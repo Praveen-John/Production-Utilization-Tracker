@@ -164,7 +164,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, recor
                             </div>
                             <div className="text-xs text-gray-400 mt-1 flex justify-between items-center">
                               <span className="truncate max-w-[60%]">{r.team}</span>
-                              <span className="bg-mac-border/50 px-2 py-0.5 rounded text-gray-300">{r.totalUtilization}h</span>
+                              <span className="bg-mac-border/50 px-2 py-0.5 rounded text-gray-300">{r.totalUtilization}min</span>
                             </div>
                           </div>
                         </li>
