@@ -220,7 +220,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, recor
                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col gap-1">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-900/30 text-green-400 border border-green-900/50 w-fit">
-                              {r.totalUtilization} Hrs
+                              {r.totalUtilization} Min
                             </span>
                             <span className="text-xs text-gray-500">Count: {r.count}</span>
                           </div>
