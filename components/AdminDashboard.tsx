@@ -96,15 +96,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [records, overviewDateFilter, overviewTeamFilter, overviewUserFilter]);
 
   const utilizationByUser = useMemo(() => {
-    return users
+    const userUtilization = users
       .filter(u => u.role !== 'ADMIN')
       .map(u => {
-        const totalUtil = overviewRecords
-          .filter(r => r.userId === u.id)
-          .reduce((acc, curr) => acc + curr.totalUtilization, 0);
-        return { name: u.name, utilization: totalUtil, team: overviewRecords.find(r => r.userId === u.id)?.team || 'Unknown' };
-      })
-      .filter(u => u.utilization > 0) 
+        const userRecords = overviewRecords.filter(r => r.userId === u.id);
+        if (userRecords.length === 0) return null;
+
+        // Get unique dates for this user
+        const uniqueDates = new Set(userRecords.map(r => r.completedDate));
+        const numberOfDays = uniqueDates.size;
+
+        // Calculate total utilization in minutes
+        const totalUtilMinutes = userRecords.reduce((acc, curr) => acc + curr.totalUtilization, 0);
+
+        // Convert to hours
+        const totalUtilHours = totalUtilMinutes / 60;
+
+        // Average by number of days and cap at 8 hours average
+        const averageHours = Math.min((totalUtilHours / numberOfDays), 8);
+
+        // Convert to percentage of 8-hour day (for display purposes)
+        const utilizationPercentage = (averageHours / 8) * 100;
+
+        return {
+          name: u.name,
+          utilization: averageHours, // Show in hours
+          utilizationPercentage: utilizationPercentage, // Percentage for tooltip
+          days: numberOfDays,
+          totalHours: totalUtilHours,
+          team: userRecords[0]?.team || 'Unknown'
+        };
+      });
+
+    return userUtilization
+      .filter((u): u is NonNullable<typeof u> => u !== null && u.utilization > 0)
       .sort((a, b) => b.utilization - a.utilization);
   }, [users, overviewRecords]);
 
@@ -140,14 +165,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   }, [overviewRecords]);
 
   const trendData = useMemo(() => {
+    // Get total active users (non-admin) for averaging
+    const totalActiveUsers = users.filter(u => u.role !== 'ADMIN').length;
+    if (totalActiveUsers === 0) return [];
+
     const sortedDates = Array.from(new Set(overviewRecords.map(r => r.completedDate))).sort();
     return sortedDates.map(date => {
       const dailyTotal = overviewRecords
         .filter(r => r.completedDate === date)
         .reduce((acc, curr) => acc + curr.totalUtilization, 0);
-      return { date, utilization: dailyTotal };
+
+      // Convert to hours and calculate per person average
+      const dailyTotalHours = dailyTotal / 60;
+      const perPersonAverage = dailyTotalHours / totalActiveUsers;
+
+      return {
+        date,
+        utilization: dailyTotal, // Keep original for potential use
+        perPersonAverage: perPersonAverage // New per person average in hours
+      };
     });
-  }, [overviewRecords]);
+  }, [overviewRecords, users]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
@@ -363,14 +401,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </h3>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={utilizationByUser} layout="vertical" margin={{ left: 20 }}>
+                      <BarChart data={utilizationByUser} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 40 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#30363d" horizontal={false} />
-                        <XAxis type="number" stroke="#8b949e" tick={{fill: '#8b949e'}} />
+                        <XAxis
+                          type="number"
+                          stroke="#8b949e"
+                          tick={{fill: '#8b949e', fontSize: 11}}
+                          label={{ value: 'Hours (Avg)', position: 'outsideBottom', offset: 0, fill: '#8b949e', fontSize: 13, style: { fontWeight: 'bold' } }}
+                          domain={[0, 8]}
+                          ticks={[0, 2, 4, 6, 8]}
+                        />
                         <YAxis dataKey="name" type="category" width={100} stroke="#8b949e" tick={{fill: '#8b949e'}} />
-                        <Tooltip 
+                        <Tooltip
                           contentStyle={{ backgroundColor: '#161b22', borderColor: '#30363d', color: '#c9d1d9', borderRadius: '8px' }}
                           itemStyle={{ color: '#fff' }}
                           cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                          labelFormatter={(name) => `User: ${name}`}
+                          formatter={(value: any, name: any, props: any) => {
+                            if (name === 'utilization') {
+                              const data = props.payload;
+                              return [
+                                `${data.utilization.toFixed(1)} hrs (${data.utilizationPercentage.toFixed(1)}%)`,
+                                'Daily Avg'
+                              ];
+                            }
+                            return [value, name];
+                          }}
                         />
                         <Bar dataKey="utilization" fill="#58a6ff" radius={[0, 4, 4, 0]} animationDuration={1500} barSize={20} />
                       </BarChart>
@@ -419,23 +475,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </h3>
                   <div className="h-[500px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={processTaskByTeamData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <BarChart data={processTaskByTeamData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#30363d" vertical={false} />
-                        <XAxis dataKey="name" stroke="#8b949e" tick={{fill: '#8b949e'}} />
+                        <XAxis
+                          dataKey="name"
+                          stroke="#8b949e"
+                          tick={{fill: '#8b949e', fontSize: 12}}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
                         <YAxis stroke="#8b949e" tick={{fill: '#8b949e'}} />
-                        <Tooltip 
+                        <Tooltip
                            contentStyle={{ backgroundColor: '#161b22', borderColor: '#30363d', color: '#c9d1d9', borderRadius: '8px' }}
                            itemStyle={{ color: '#fff' }}
                            cursor={{fill: 'rgba(255,255,255,0.05)'}}
                         />
-                        <Legend wrapperStyle={{paddingTop: '20px'}} />
+                        <Legend
+                           layout="horizontal"
+                           verticalAlign="top"
+                           align="center"
+                           wrapperStyle={{paddingTop: '10px', paddingBottom: '20px'}}
+                        />
                         {uniqueProcessTasks.map((processTask, index) => (
-                           <Bar 
-                             key={processTask} 
-                             dataKey={processTask} 
+                           <Bar
+                             key={processTask}
+                             dataKey={processTask}
                              name={processTask} // Legend uses this
-                             stackId="a" 
-                             fill={getProcessColor(index)} 
+                             stackId="a"
+                             fill={getProcessColor(index)}
                              animationDuration={1500}
                            />
                         ))}
@@ -461,13 +529,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#30363d" vertical={false} />
                         <XAxis dataKey="date" stroke="#8b949e" tick={{fill: '#8b949e'}} />
-                        <YAxis stroke="#8b949e" tick={{fill: '#8b949e'}} />
-                        <Tooltip 
+                        <YAxis
+                          stroke="#8b949e"
+                          tick={{fill: '#8b949e'}}
+                          label={{ value: 'Hours per Person', angle: -90, position: 'insideLeft', fill: '#8b949e', fontSize: 12 }}
+                        />
+                        <Tooltip
                           contentStyle={{ backgroundColor: '#161b22', borderColor: '#30363d', color: '#c9d1d9', borderRadius: '8px' }}
                           itemStyle={{ color: '#fff' }}
+                          formatter={(value: any, name: any) => {
+                            if (name === 'perPersonAverage') {
+                              return [`${value.toFixed(2)} hrs`, 'Per Person Avg'];
+                            }
+                            return [value, name];
+                          }}
                         />
                         <Brush dataKey="date" height={30} stroke="#58a6ff" />
-                        <Area type="monotone" dataKey="utilization" stroke="#58a6ff" fillOpacity={1} fill="url(#colorUtil)" animationDuration={2000} />
+                        <Area
+                          type="monotone"
+                          dataKey="perPersonAverage"
+                          stroke="#58a6ff"
+                          fillOpacity={1}
+                          fill="url(#colorUtil)"
+                          animationDuration={2000}
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
