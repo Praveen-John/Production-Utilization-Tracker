@@ -90,19 +90,86 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // }, []);
 
   // User actions
-  const addUser = (newUser: User) => {
-    setUsers(prev => [...prev, newUser]);
-    triggerUpdate();
+  const addUser = async (newUser: User) => {
+    console.log('Adding user:', newUser);
+
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to add user:', errorData);
+        throw new Error(`Failed to add user: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('User added successfully:', result);
+
+      // Update local state only after successful API call
+      setUsers(prev => [...prev, newUser]);
+      triggerUpdate();
+    } catch (error) {
+      console.error('Error adding user:', error);
+      // Don't update local state if API call fails
+    }
   };
 
-  const updateUser = (updatedUser: User) => {
-    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-    triggerUpdate();
+  const updateUser = async (updatedUser: User) => {
+    console.log('Updating user:', updatedUser);
+
+    try {
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to update user:', errorData);
+        throw new Error(`Failed to update user: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('User updated successfully:', result);
+
+      // Update local state only after successful API call
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+      triggerUpdate();
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
   };
 
-  const deleteUser = (id: string) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
-    triggerUpdate();
+  const deleteUser = async (id: string) => {
+    console.log('Deleting user:', id);
+
+    try {
+      const response = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to delete user:', errorData);
+        throw new Error(`Failed to delete user: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('User deleted successfully:', result);
+
+      // Update local state only after successful API call
+      setUsers(prev => prev.filter(u => u.id !== id));
+      triggerUpdate();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
   };
 
   // Record actions

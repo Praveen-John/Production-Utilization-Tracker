@@ -206,10 +206,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return `hsl(${hues[index % hues.length]}, 70%, 60%)`;
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUser.username || !newUser.password || !newUser.name) return;
-    
+
     const u: User = {
       id: uuidv4(),
       role: newUser.role,
@@ -217,7 +217,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       password: newUser.password,
       name: newUser.name
     };
-    addUser(u);
+
+    console.log('Creating user in form:', u);
+    await addUser(u);
     setNewUser({ name: '', username: '', password: '', role: UserRole.USER });
   };
 
@@ -856,11 +858,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         title="Delete Record"
         message="Are you sure you want to delete this production record? This action cannot be undone."
       />
-      <ConfirmationModal 
+      <ConfirmationModal
         isOpen={!!deletingUser}
         onClose={() => setDeletingUser(null)}
-        onConfirm={() => {
-          if (deletingUser) deleteUser(deletingUser.id);
+        onConfirm={async () => {
+          if (deletingUser) {
+            await deleteUser(deletingUser.id);
+          }
           setDeletingUser(null);
         }}
         title="Delete User"

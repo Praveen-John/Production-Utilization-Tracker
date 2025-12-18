@@ -105,6 +105,50 @@ module.exports = async (req, res) => {
 
         res.status(200).json(updatedUser);
       }
+    } else if (req.method === 'DELETE') {
+      // Parse request body to get user ID
+      let body;
+      if (typeof req.body === 'object') {
+        body = req.body;
+      } else if (typeof req.body === 'string') {
+        try {
+          body = JSON.parse(req.body);
+        } catch (e) {
+          console.error('JSON parse error:', e);
+          await client.close();
+          return res.status(400).json({
+            message: 'Invalid JSON in request body',
+            body: req.body,
+            error: e.message
+          });
+        }
+      }
+
+      const id = body.id;
+      if (!id) {
+        await client.close();
+        return res.status(400).json({
+          message: 'User ID is required for deletion'
+        });
+      }
+
+      console.log('Deleting user:', id);
+
+      const result = await db.collection('users').deleteOne({ id: id });
+
+      await client.close();
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({
+          message: 'User not found',
+          userId: id
+        });
+      }
+
+      res.status(200).json({
+        message: 'User deleted successfully',
+        userId: id
+      });
     } else {
       await client.close();
       res.status(405).json({ message: 'Method not allowed' });
