@@ -82,6 +82,16 @@ const rawTasksFromCSV = [
   { task: "Whatsapp Class Remainder", time: "2" },
   { task: "Certificate Address collection", time: "2" },
   { task: "Queries from Sales", time: "runtime" },
+  { task: "Meetings", time: "runtime" },
+  { task: "Reminder Message - Sending", time: "10" },
+  { task: "Session Login , Basic Check", time: "5" },
+  { task: "Joining Link Check", time: "3" },
+  { task: "Payment Link, Document Link - Check", time: "5" },
+  { task: "Payment Link, Document Link - Check", time: "runtime" },
+  { task: "Count Report Updation", time: "5" },
+  { task: "Inputs For Workshop", time: "15" },
+  { task: "Evening Workshop - Check", time: "runtime" },
+  { task: "Evening Workshop Reminders", time: "5" },
   { task: "Other", time: "runtime" },
 ];
 

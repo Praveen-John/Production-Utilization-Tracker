@@ -24,6 +24,10 @@ export interface ProductionRecord {
   completedDate: string; // ISO date string
   count: number;
   remarks: string;
+  actualUtilization: number; // Count X Duration in minutes
+  actualOverallPerDayUtilization?: number; // Calculated as actualUtilization / 60 in hours
+  actualVolume?: number; // Calculated as Duration Meter × Number Of Count
+  actualUtilizationUserInput?: number; // User-enterable Count X Duration in minutes
 }
 
 export type ChatMessage = {

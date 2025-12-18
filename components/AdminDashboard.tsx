@@ -12,6 +12,7 @@ import {
 import { Users, LayoutDashboard, Database, LogOut, Plus, Search, Filter, Calendar, Download, Trash2, Edit2, X, Save, UserX, UserCheck } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { formatDate } from '../utils/dateUtils';
 
 interface AdminDashboardProps {
   currentUser: User;
@@ -180,7 +181,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const perPersonAverage = dailyTotalHours / totalActiveUsers;
 
       return {
-        date,
+        date: formatDate(date),
+        originalDate: date, // Keep original for sorting
         utilization: dailyTotal, // Keep original for potential use
         perPersonAverage: perPersonAverage // New per person average in hours
       };
@@ -747,9 +749,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <table className="min-w-full divide-y divide-mac-border/50">
                 <thead className="bg-mac-surface/50 sticky top-0 backdrop-blur-md z-10">
                   <tr>
-                    {['Task', 'Team', 'User', 'Freq', 'Util', 'Date', 'Count', 'Remarks', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                    ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">User</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Task</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Team</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Freq</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Exp Util</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Act Util</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Count</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Remarks</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-mac-border/50 bg-transparent">
@@ -758,6 +767,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       {editingRecordId === r.id ? (
                         /* Editing Mode - Dropdowns */
                         <>
+                          <td className="px-4 py-3">
+                            <input type="date" className="bg-mac-bg border border-mac-border rounded px-1 w-full text-xs text-white [color-scheme:dark]" value={editForm.completedDate} onChange={e => setEditForm({...editForm, completedDate: e.target.value})} />
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-400">{r.userName}</td>
                           <td className="px-4 py-3">
                              <select className={`${selectClass} w-32`} value={editForm.processName} onChange={e => setEditForm({...editForm, processName: e.target.value, task: e.target.value})}>
                                {TASKS_WITH_TIME.map(p => <option key={p.name} value={p.name} className="bg-mac-bg text-white">{p.name}</option>)}
@@ -768,14 +781,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                {TEAMS.map(t => <option key={t} value={t} className="bg-mac-bg text-white">{t}</option>)}
                              </select>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-400">{r.userName}</td>
                           <td className="px-4 py-3">
                              <select className={`${selectClass} w-24`} value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
                                {FREQUENCIES.map(f => <option key={f} value={f} className="bg-mac-bg text-white">{f}</option>)}
                              </select>
                           </td>
-                          <td className="px-4 py-3"><input type="number" step="0.01" readOnly={!isEditTimeCustom} className={`bg-mac-bg border border-mac-border rounded px-1 w-16 text-xs text-white ${!isEditTimeCustom ? 'opacity-50 cursor-not-allowed' : ''}`} value={editForm.totalUtilization} onChange={e => setEditForm({...editForm, totalUtilization: Number(e.target.value)})} /></td>
-                          <td className="px-4 py-3"><input type="date" className="bg-mac-bg border border-mac-border rounded px-1 w-full text-xs text-white [color-scheme:dark]" value={editForm.completedDate} onChange={e => setEditForm({...editForm, completedDate: e.target.value})} /></td>
+                          <td className="px-4 py-3"><input type="number" step="1" readOnly className="bg-mac-bg border border-mac-border rounded px-1 w-16 text-xs text-white opacity-50 cursor-not-allowed" value={(editForm.totalUtilization || 0) * (editForm.count || 0)} disabled /></td>
+                          <td className="px-4 py-3"><input type="number" step="1" className="bg-mac-bg border border-mac-border rounded px-1 w-16 text-xs text-white" value={editForm.actualUtilizationUserInput || 0} onChange={e => setEditForm({...editForm, actualUtilizationUserInput: Number(e.target.value)})} /></td>
                           <td className="px-4 py-3"><input type="number" className="bg-mac-bg border border-mac-border rounded px-1 w-12 text-xs text-white" value={editForm.count} onChange={e => setEditForm({...editForm, count: Number(e.target.value)})} /></td>
                           <td className="px-4 py-3"><input className="bg-mac-bg border border-mac-border rounded px-1 w-full text-xs text-white" value={editForm.remarks} onChange={e => setEditForm({...editForm, remarks: e.target.value})} /></td>
                           <td className="px-4 py-3 whitespace-nowrap">
@@ -788,22 +800,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       ) : (
                         /* Display Mode */
                         <>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">{formatDate(r.completedDate)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-mac-accent">{r.userName}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-white">{r.processName}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{r.team}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-mac-accent">{r.userName}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">{r.frequency}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-white font-mono">{r.totalUtilization}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">{r.completedDate}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-white font-mono">{(r.totalUtilization || 0) * (r.count || 0)} mins</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-white font-mono">{r.actualUtilizationUserInput || 0} mins</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{r.count}</td>
                           <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate" title={r.remarks}>{r.remarks}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-right">
                              <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                                <button onClick={() => startEditingRecord(r)} className="text-blue-400 hover:text-blue-300"><Edit2 size={16}/></button>
-                               <button 
-                                 onClick={(e) => { 
+                               <button
+                                 onClick={(e) => {
                                    e.stopPropagation();
                                    setDeleteRecordId(r.id);
-                                 }} 
+                                 }}
                                  className="text-red-400 hover:text-red-300"
                                >
                                  <Trash2 size={16}/>
@@ -816,7 +829,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   ))}
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="px-6 py-12 text-center text-gray-500">No records found matching your criteria.</td>
+                      <td colSpan={10} className="px-6 py-12 text-center text-gray-500">No records found matching your criteria.</td>
                     </tr>
                   )}
                 </tbody>
