@@ -4,8 +4,9 @@ import { TEAMS, FREQUENCIES, TASKS_WITH_TIME } from '../constants';
 import { ChatBot } from './ChatBot';
 import { TimeStudy } from './TimeStudy';
 import { ConfirmationModal } from './ConfirmationModal';
+import { useAppContext } from '../contexts/AppContext';
 import { v4 as uuidv4 } from 'uuid';
-import { 
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, Brush
 } from 'recharts';
@@ -16,27 +17,24 @@ import { formatDate } from '../utils/dateUtils';
 
 interface AdminDashboardProps {
   currentUser: User;
-  users: User[];
-  records: ProductionRecord[];
-  onAddUser: (user: User) => void;
-  onUpdateUser: (user: User) => void;
-  onDeleteUser: (id: string) => void;
-  onUpdateRecord: (record: ProductionRecord) => void;
-  onDeleteRecord: (id: string) => void;
   onLogout: () => void;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
-  users, 
-  records, 
-  onAddUser, 
-  onUpdateUser, 
-  onDeleteUser,
-  onUpdateRecord,
-  onDeleteRecord,
-  onLogout 
+  onLogout
 }) => {
+  const {
+    users,
+    records,
+    addUser,
+    updateUser,
+    deleteUser,
+    updateRecord,
+    deleteRecord,
+    lastUpdate,
+    loading
+  } = useAppContext();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'records'>('overview');
   const [newUser, setNewUser] = useState({ name: '', username: '', password: '', role: UserRole.USER });
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +47,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   
   const [userRoleFilter, setUserRoleFilter] = useState<'ALL' | UserRole>('ALL');
   const [selectedUserForRecordsFilter, setSelectedUserForRecordsFilter] = useState<string | null>(null);
-  
+
+  // Force re-render when data updates (removed - context handles this automatically)
+  // useEffect(() => {
+  //   // This effect will trigger when lastUpdate changes, ensuring UI updates with fresh data
+  // }, [lastUpdate]);
+
   // Editing state
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<ProductionRecord>>({});
@@ -214,7 +217,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       password: newUser.password,
       name: newUser.name
     };
-    onAddUser(u);
+    addUser(u);
     setNewUser({ name: '', username: '', password: '', role: UserRole.USER });
   };
 
@@ -270,7 +273,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         alert("Utilization must be greater than 0 and no more than 480 minutes (8 hours)");
         return;
       }
-      onUpdateRecord(editForm as ProductionRecord);
+      updateRecord(editForm as ProductionRecord);
       setEditingRecordId(null);
       setEditForm({});
     }
@@ -283,7 +286,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const saveEditUser = () => {
     if (editingUserId && editUserForm) {
-      onUpdateUser(editUserForm as User);
+      updateUser(editUserForm as User);
       setEditingUserId(null);
       setEditUserForm({});
     }
@@ -682,7 +685,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <div className="flex justify-end gap-2">
                               <button onClick={() => startEditingUser(u)} className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-900/30 rounded-lg"><Edit2 size={16}/></button>
                               <button
-                                onClick={() => onUpdateUser({ ...u, isDisabled: !u.isDisabled })}
+                                onClick={() => updateUser({ ...u, isDisabled: !u.isDisabled })}
                                 className={`${u.isDisabled ? 'text-green-400 hover:text-green-300' : 'text-yellow-400 hover:text-yellow-300'} p-2 hover:bg-yellow-900/30 rounded-lg transition-all`}
                                 title={u.isDisabled ? 'Enable User Account' : 'Disable User Account'}
                               >
@@ -802,7 +805,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">{formatDate(r.completedDate)}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-mac-accent">{r.userName}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-white">{r.processName}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-white">{r.task}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{r.team}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">{r.frequency}</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-white font-mono">{(r.totalUtilization || 0) * (r.count || 0)} mins</td>
@@ -847,7 +850,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         isOpen={!!deleteRecordId}
         onClose={() => setDeleteRecordId(null)}
         onConfirm={() => {
-          if (deleteRecordId) onDeleteRecord(deleteRecordId);
+          if (deleteRecordId) deleteRecord(deleteRecordId);
           setDeleteRecordId(null);
         }}
         title="Delete Record"
@@ -857,7 +860,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         isOpen={!!deletingUser}
         onClose={() => setDeletingUser(null)}
         onConfirm={() => {
-          if (deletingUser) onDeleteUser(deletingUser.id);
+          if (deletingUser) deleteUser(deletingUser.id);
           setDeletingUser(null);
         }}
         title="Delete User"

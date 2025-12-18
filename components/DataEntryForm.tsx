@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Check, AlertCircle, X } from 'lucide-react';
 import { ProductionRecord, User } from '../types';
 import { TASKS_WITH_TIME, TEAMS, FREQUENCIES } from '../constants';
+import { useAppContext } from '../contexts/AppContext';
 import { v4 as uuidv4 } from 'uuid';
 import { getCurrentDateISO } from '../utils/dateUtils';
 
 interface DataEntryFormProps {
   currentUser: User;
-  onAddRecord: (record: ProductionRecord) => void;
 }
 
-export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAddRecord }) => {
+export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser }) => {
+  const { addRecord } = useAppContext();
   const [formData, setFormData] = useState<Partial<ProductionRecord>>({
     processName: TASKS_WITH_TIME[0].name,
     team: TEAMS[0],
@@ -25,16 +26,23 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
   const [showToast, setShowToast] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [otherTaskName, setOtherTaskName] = useState('');
 
-  // Effect to check if selected task is runtime
+  // Effect to check if selected task is runtime or other
   useEffect(() => {
     const selectedTask = TASKS_WITH_TIME.find(t => t.name === formData.processName);
-    setIsRuntimeTask(selectedTask?.time === 'runtime');
+    const isOther = formData.processName === 'Other';
+    setIsRuntimeTask(selectedTask?.time === 'runtime' || isOther);
 
     // Reset duration if not runtime task
-    if (selectedTask?.time !== 'runtime') {
+    if (selectedTask?.time !== 'runtime' && !isOther) {
       const taskTime = typeof selectedTask?.time === 'number' ? selectedTask.time : 0;
       setFormData(prev => ({ ...prev, totalUtilization: taskTime }));
+    }
+
+    // Reset other task name if not "Other" is selected
+    if (!isOther) {
+      setOtherTaskName('');
     }
   }, [formData.processName]);
 
@@ -43,6 +51,14 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
 
     if (!formData.processName || !formData.team || !formData.frequency) {
         setErrorMessage("Please fill in all required fields.");
+        setShowError(true);
+        setTimeout(() => setShowError(false), 4000);
+        return;
+    }
+
+    // Check if "Other" is selected but no task name is provided
+    if (formData.processName === 'Other' && !otherTaskName.trim()) {
+        setErrorMessage("Please specify the task name when 'Other' is selected.");
         setShowError(true);
         setTimeout(() => setShowError(false), 4000);
         return;
@@ -68,13 +84,15 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
         return;
     }
 
+    const taskDisplayName = formData.processName === 'Other' ? otherTaskName : formData.processName;
+
     const newRecord: ProductionRecord = {
       id: uuidv4(),
       userId: currentUser.id,
       userName: currentUser.name,
       processName: formData.processName,
       team: formData.team!,
-      task: formData.processName,
+      task: taskDisplayName,
       frequency: formData.frequency || 'Daily',
       totalUtilization: formData.totalUtilization || 0,
       completedDate: formData.completedDate || getCurrentDateISO(),
@@ -85,7 +103,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
       actualUtilizationUserInput: formData.actualUtilizationUserInput || 0
     };
 
-    onAddRecord(newRecord);
+    addRecord(newRecord);
 
     // Show success toast
     setShowToast(true);
@@ -102,6 +120,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
       remarks: '',
       actualUtilizationUserInput: 0
     }));
+    setOtherTaskName('');
   };
 
   const inputClass = "mt-1 block w-full rounded-lg bg-mac-bg border-mac-border text-white shadow-sm focus:border-mac-accent focus:ring-mac-accent sm:text-sm p-2.5 border placeholder-gray-500 transition-colors appearance-none";
@@ -124,6 +143,19 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ currentUser, onAdd
           >
             {TASKS_WITH_TIME.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
           </select>
+          {formData.processName === 'Other' && (
+            <div className="mt-2">
+              <label className={labelClass}>Please specify the task name</label>
+              <input
+                type="text"
+                value={otherTaskName}
+                onChange={e => setOtherTaskName(e.target.value)}
+                className={inputClass}
+                placeholder="Enter custom task name..."
+                required
+              />
+            </div>
+          )}
         </div>
 
         <div>

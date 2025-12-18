@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, ProductionRecord } from '../types';
 import { DataEntryForm } from './DataEntryForm';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -6,21 +6,25 @@ import { LogOut, LayoutList, PlusSquare, Trash2, Calendar, Check } from 'lucide-
 import { TimeStudy } from './TimeStudy';
 import { ConfirmationModal } from './ConfirmationModal';
 import { formatDate } from '../utils/dateUtils';
+import { useAppContext } from '../contexts/AppContext';
 
 interface UserDashboardProps {
   currentUser: User;
-  records: ProductionRecord[];
-  onAddRecord: (record: ProductionRecord) => void;
-  onDeleteRecord: (id: string) => void;
   onLogout: () => void;
 }
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, records, onAddRecord, onDeleteRecord, onLogout }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, onLogout }) => {
+  const { records, deleteRecord, lastUpdate } = useAppContext();
   const [activeTab, setActiveTab] = useState<'entry' | 'my-records'>('entry');
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [showDeleteToast, setShowDeleteToast] = useState(false);
+
+  // Force re-render when data updates (removed - context handles this automatically)
+  // useEffect(() => {
+  //   // This effect will trigger when lastUpdate changes, ensuring UI updates with fresh data
+  // }, [lastUpdate]);
 
   const myRecords = records.filter(r => r.userId === currentUser.id);
   console.log('🔥 UserDashboard - Total records:', records.length, 'My records:', myRecords.length);
@@ -39,13 +43,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, recor
   };
 
   // Filter records for the chart based on selected month
-  const chartRecords = selectedMonth
+  const chartRecords = selectedMonth && selectedMonth.trim() !== ''
     ? myRecords.filter(r => r.completedDate.startsWith(selectedMonth))
     : myRecords;
 
-  const filteredRecords = selectedDate
+  const filteredRecords = selectedDate && selectedDate.trim() !== ''
     ? myRecords.filter(r => r.completedDate === selectedDate)
-    : myRecords;
+    : sortedRecords; // Use sortedRecords to show all records sorted by date
 
   // Aggregation for user chart with Actual and Expected Utilization
   const actualUtilizationMap = new Map<string, number>();
@@ -124,7 +128,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, recor
         
         {activeTab === 'entry' && (
           <div className="space-y-8">
-            <DataEntryForm currentUser={currentUser} onAddRecord={onAddRecord} />
+            <DataEntryForm currentUser={currentUser} />
 
                {/* Chart Section */}
                <div className="glass shadow-lg rounded-xl p-6 border border-mac-border/50">
@@ -292,7 +296,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, recor
                        </td>
                        <td className="px-6 py-4">
                          <div className="flex flex-col">
-                           <span className="text-sm font-medium text-white">{r.processName}</span>
+                           <span className="text-sm font-medium text-white">{r.task}</span>
                            <span className="text-xs text-gray-400 mt-0.5">{r.team}</span>
                            {r.remarks && <span className="text-xs text-gray-500 mt-1 italic">"{r.remarks}"</span>}
                          </div>
@@ -350,7 +354,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ currentUser, recor
         onClose={() => setDeleteId(null)}
         onConfirm={() => {
           if (deleteId) {
-            onDeleteRecord(deleteId);
+            deleteRecord(deleteId);
             // Show delete success toast
             setShowDeleteToast(true);
             setTimeout(() => setShowDeleteToast(false), 3000);
